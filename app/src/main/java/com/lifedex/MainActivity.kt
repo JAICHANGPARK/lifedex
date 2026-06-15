@@ -47,6 +47,8 @@ import com.lifedex.ui.components.GeminiDiagnosisDialog
 import com.lifedex.ui.components.GeographicZoneDialog
 import com.lifedex.ui.screens.DexListingScreen
 import com.lifedex.ui.screens.ScannerWorkspaceScreen
+import com.lifedex.ui.screens.CardsGalleryScreen
+import com.lifedex.ui.screens.DecksScreen
 import com.lifedex.ui.theme.CyberSlate
 import com.lifedex.ui.theme.MyApplicationTheme
 import com.lifedex.ui.theme.CardSlate
@@ -194,7 +196,7 @@ fun GotchaAppScreen(
             )
         },
         floatingActionButton = {
-            if (activeTab == "DEX") {
+            if (activeTab == "DEX" || activeTab == "CARDS" || activeTab == "DECKS") {
                 FloatingActionButton(
                     onClick = { launchCameraWithPermission() },
                     containerColor = MaterialTheme.colorScheme.secondary,
@@ -233,57 +235,75 @@ fun GotchaAppScreen(
                         .weight(1f)
                         .fillMaxWidth()
                 ) {
-                    if (activeTab == "DEX") {
-                        DexListingScreen(
-                            viewModel = viewModel,
-                            cards = cardsList,
-                            onCardSelect = { viewModel.selectDetailCard(it) },
-                            onClearAll = { viewModel.clearAllCollection() }
-                        )
-                    } else {
-                        ScannerWorkspaceScreen(
-                            isScanning = isScanning,
-                            scanProgress = scanProgress,
-                            processedBitmap = processedBitmap,
-                            capturedImageUri = capturedImageUri,
-                            rarity = rarityResult,
-                            level = cardLevel,
-                            title = titleInput,
-                            suggestions = suggestions,
-                            isNewCardReady = isNewCardReady,
-                            tempStickers = tempStickers,
-                    selectedStickerIndex = selectedStickerIndex,
-                            processingStep = processingStep,
-                            processingStepLabel = processingStepLabel,
-                            cardImageBitmap = cardImageBitmap,
-                            showCardTab = showCardTab,
-                            isAwaitingSubjectSelection = uiState.isAwaitingSubjectSelection,
-                            combinedMaskImage = uiState.combinedMaskImage,
-                            detectedSubjects = uiState.detectedSubjects,
-                            onSubjectSelect = { viewModel.selectSubjectAndContinue(it) },
-                            onStickerSelect = { viewModel.selectSticker(it) },
-                            onTitleChange = { viewModel.updateCurrentStickerTitle(it) },
-                            onToggleCardView = { viewModel.toggleCardView() },
-                            onPhotoPick = {
-                                photoPickerLauncher.launch(
-                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                )
-                            },
-                            onCameraClick = {
-                                launchCameraWithPermission()
-                            },
-                            onConfirmSave = {
-                                viewModel.commitGeneratedCard()
-                                Toast.makeText(context, "Card Collected in Storage!", Toast.LENGTH_SHORT).show()
-                            },
-                            onDiscardCurrent = {
-                                viewModel.discardCurrentSticker()
-                                Toast.makeText(context, "Sticker Recycled!", Toast.LENGTH_SHORT).show()
-                            },
-                            onDiscardAll = {
-                                viewModel.resetCaptureStates()
-                            }
-                        )
+                    when (activeTab) {
+                        "DEX" -> {
+                            DexListingScreen(
+                                viewModel = viewModel,
+                                cards = cardsList,
+                                onCardSelect = { viewModel.selectDetailCard(it) },
+                                onClearAll = { viewModel.clearAllCollection() }
+                            )
+                        }
+                        "CARDS" -> {
+                            CardsGalleryScreen(
+                                cards = cardsList,
+                                onCardSelect = { viewModel.selectDetailCard(it) }
+                            )
+                        }
+                        "DECKS" -> {
+                            val decksList by viewModel.decks.collectAsStateWithLifecycle()
+                            DecksScreen(
+                                viewModel = viewModel,
+                                decks = decksList,
+                                allCards = cardsList,
+                                onCardSelect = { viewModel.selectDetailCard(it) }
+                            )
+                        }
+                        else -> {
+                            ScannerWorkspaceScreen(
+                                isScanning = isScanning,
+                                scanProgress = scanProgress,
+                                processedBitmap = processedBitmap,
+                                capturedImageUri = capturedImageUri,
+                                rarity = rarityResult,
+                                level = cardLevel,
+                                title = titleInput,
+                                suggestions = suggestions,
+                                isNewCardReady = isNewCardReady,
+                                tempStickers = tempStickers,
+                                selectedStickerIndex = selectedStickerIndex,
+                                processingStep = processingStep,
+                                processingStepLabel = processingStepLabel,
+                                cardImageBitmap = cardImageBitmap,
+                                showCardTab = showCardTab,
+                                isAwaitingSubjectSelection = uiState.isAwaitingSubjectSelection,
+                                combinedMaskImage = uiState.combinedMaskImage,
+                                detectedSubjects = uiState.detectedSubjects,
+                                onSubjectSelect = { viewModel.selectSubjectAndContinue(it) },
+                                onStickerSelect = { viewModel.selectSticker(it) },
+                                onTitleChange = { viewModel.updateCurrentStickerTitle(it) },
+                                onToggleCardView = { viewModel.toggleCardView() },
+                                onPhotoPick = {
+                                    photoPickerLauncher.launch(
+                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                    )
+                                },
+                                onCameraClick = {
+                                    launchCameraWithPermission()
+                                },
+                                onConfirmSave = {
+                                    viewModel.commitGeneratedCard()
+                                    Toast.makeText(context, "Card Collected in Storage!", Toast.LENGTH_SHORT).show()
+                                },
+                                onDiscardCurrent = {
+                                    viewModel.discardCurrentSticker()
+                                    Toast.makeText(context, "Sticker Recycled!", Toast.LENGTH_SHORT).show()
+                                },
+                                onDiscardAll = {
+                                    viewModel.resetCaptureStates()
+                                }
+                            )
+                        }
                     }
                 }
             }

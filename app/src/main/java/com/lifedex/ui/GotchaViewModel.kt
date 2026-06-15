@@ -9,6 +9,8 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.lifedex.data.GotchaCard
+import com.lifedex.data.GotchaDeck
+import com.lifedex.data.DeckCardCrossRef
 import com.lifedex.data.GotchaDatabase
 import com.lifedex.data.GotchaRepository
 import com.lifedex.service.NukiService
@@ -59,6 +61,14 @@ class GotchaViewModel(application: Application) : AndroidViewModel(application) 
             initialValue = emptyList()
         )
 
+    // Exposed list of all decks
+    val decks: StateFlow<List<GotchaDeck>> = repository.allDecks
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
     // Dynamic state variables
     private val isScanning = MutableStateFlow(false)
     private val scanProgress = MutableStateFlow(0f)
@@ -88,7 +98,7 @@ class GotchaViewModel(application: Application) : AndroidViewModel(application) 
     // Step-by-step processing state (0=idle, 1=segmentation, 2=sticker, 3=recognition, 4=card generation)
     private val processingStep = MutableStateFlow(0)
     private val processingStepLabel = MutableStateFlow("")
-    private val cardImageBitmap = MutableStateFlow<Bitmap?>(null)  // Current Pokemon card image
+    private val cardImageBitmap = MutableStateFlow<Bitmap?>(null)  // Current Creature card image
     private val showCardTab = MutableStateFlow(false)  // Toggle between sticker/card view
     private var cardGenerationJob: kotlinx.coroutines.Job? = null
 
@@ -256,10 +266,10 @@ class GotchaViewModel(application: Application) : AndroidViewModel(application) 
             val sticker = list[index]
             
             processingStep.value = 4
-            processingStepLabel.value = "포켓몬 카드 생성 중..."
+            processingStepLabel.value = "도감 카드 생성 중..."
             
             val cardBitmap = withContext(Dispatchers.IO) {
-                generatePokemonCardImage(
+                generateCardImage(
                     stickerBitmap = sticker.bitmap,
                     objectLabel = sticker.title,
                     rarity = sticker.rarity,
@@ -370,7 +380,7 @@ class GotchaViewModel(application: Application) : AndroidViewModel(application) 
         }
     }
 
-    private suspend fun generatePokemonCardImage(
+    private suspend fun generateCardImage(
         stickerBitmap: Bitmap,
         objectLabel: String,
         rarity: String,
@@ -378,16 +388,16 @@ class GotchaViewModel(application: Application) : AndroidViewModel(application) 
     ): Bitmap? {
         return try {
             val seed = objectLabel.hashCode()
-            val typeIndex = Math.abs(seed) % CardGenerator.PokemonType.values().size
-            val pokemonType = CardGenerator.PokemonType.values()[typeIndex]
+            val typeIndex = Math.abs(seed) % CardGenerator.CardElementType.values().size
+            val cardElementType = CardGenerator.CardElementType.values()[typeIndex]
             val hpValue = (level * 2).coerceAtLeast(10) + 70
 
             val prompt = """
-                Create a high-quality vertical Pokémon-style trading card image.
-                The primary subject of the card must be the object from the provided image, stylized as a powerful character/creature matching the element type ${pokemonType.typeName}.
+                Create a high-quality vertical Creature TCG style trading card image.
+                The primary subject of the card must be the object from the provided image, stylized as a powerful character/creature matching the element type ${cardElementType.typeName}.
                 
                 Card Layout and Visual Requirements:
-                1. Vertical card layout (3:4 aspect ratio) with rounded corners and a premium border matching the element color (${pokemonType.colorHex}).
+                1. Vertical card layout (3:4 aspect ratio) with rounded corners and a premium border matching the element color (${cardElementType.colorHex}).
                 2. The card must have a main illustration box containing the stylized character.
                 3. The card rarity is $rarity. If rarity is LEGENDARY or EPIC, make it a Full-Art holographic "ex" card with a glowing radial gradient and diagonal light beams, and append " ex" to the name. Otherwise, draw a classic yellow/gold border card.
                 
@@ -401,21 +411,21 @@ class GotchaViewModel(application: Application) : AndroidViewModel(application) 
                 4. Bottom Footer: Render Weakness, Resistance, and Retreat stats (using Korean terms: 약점, 저항력, 후퇴).
                 5. Include copyright text "© 2026 LifeDex" at the very bottom.
                 
-                The entire card must be visual, unified, and look like an authentic physical Pokémon trading card. Do not output anything other than the card image itself.
+                The entire card must be visual, unified, and look like an authentic physical Creature trading card. Do not output anything other than the card image itself.
             """.trimIndent()
 
-            Log.d(TAG, "Generating Pokémon card via Gemini Image API for ${objectLabel}...")
+            Log.d(TAG, "Generating Creature card via Gemini Image API for ${objectLabel}...")
             val generated = geminiClient.generateImageWithFallback(prompt, stickerBitmap)
             if (generated != null) {
                 Log.d(TAG, "Successfully generated card via Gemini Image API for ${objectLabel}!")
                 generated
             } else {
                 Log.w(TAG, "Gemini Image generation returned null. Falling back to local Canvas engine.")
-                CardGenerator.generatePokemonCardImage(stickerBitmap, objectLabel, rarity, level)
+                CardGenerator.generateCardImage(stickerBitmap, objectLabel, rarity, level)
             }
         } catch (e: Exception) {
             Log.e(TAG, "Gemini Image generation failed: ${e.message}. Falling back to local Canvas engine.", e)
-            CardGenerator.generatePokemonCardImage(stickerBitmap, objectLabel, rarity, level)
+            CardGenerator.generateCardImage(stickerBitmap, objectLabel, rarity, level)
         }
     }
 
@@ -559,15 +569,15 @@ class GotchaViewModel(application: Application) : AndroidViewModel(application) 
         detectedSubjects.value = emptyList()
 
         // ═══════════════════════════════════════════
-        // STEP 4: Pokémon Card Generation (카드 생성)
+        // STEP 4: Creature Card Generation (카드 생성)
         // ═══════════════════════════════════════════
         processingStep.value = 4
-        processingStepLabel.value = "포켓몬 카드 생성 중..."
+        processingStepLabel.value = "도감 카드 생성 중..."
 
         if (updatedStickers.isNotEmpty()) {
             val firstSticker = updatedStickers[0]
             val cardBitmap = withContext(Dispatchers.IO) {
-                generatePokemonCardImage(
+                generateCardImage(
                     stickerBitmap = firstSticker.bitmap,
                     objectLabel = firstSticker.title,
                     rarity = firstSticker.rarity,
@@ -722,6 +732,42 @@ class GotchaViewModel(application: Application) : AndroidViewModel(application) 
             }
         }
     }
+
+    fun createDeck(name: String, description: String = "") {
+        viewModelScope.launch(Dispatchers.IO) {
+            val deck = GotchaDeck(name = name, description = description)
+            repository.insertDeck(deck)
+        }
+    }
+
+    fun deleteDeck(deckId: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.deleteDeck(deckId)
+        }
+    }
+
+    fun addCardsToDeck(deckId: Int, cardIds: List<Int>) {
+        viewModelScope.launch(Dispatchers.IO) {
+            cardIds.forEach { cardId ->
+                repository.addCardToDeck(deckId, cardId)
+            }
+        }
+    }
+
+    fun removeCardFromDeck(deckId: Int, cardId: Int) {
+        viewModelScope.launch(Dispatchers.IO) {
+            repository.removeCardFromDeck(deckId, cardId)
+        }
+    }
+
+    fun getCardsForDeck(deckId: Int): StateFlow<List<GotchaCard>> {
+        return repository.getCardsForDeck(deckId)
+            .stateIn(
+                scope = viewModelScope,
+                started = SharingStarted.WhileSubscribed(5000),
+                initialValue = emptyList()
+            )
+    }
 }
 
 data class Hotspot(val name: String, val lat: Double, val lng: Double)
@@ -732,5 +778,5 @@ data class TempSticker(
     val rarity: String,
     val level: Int,
     val suggestions: List<String>,
-    var cardBitmap: Bitmap? = null  // Generated Pokemon card image
+    var cardBitmap: Bitmap? = null  // Generated Creature card image
 )

@@ -185,7 +185,7 @@ fun GotchaCardDetailsDialog(
                 }
 
                 if (showCardImage && card.cardImagePath != null) {
-                    // Show Pokemon card image
+                    // Show Creature card image
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -204,7 +204,7 @@ fun GotchaCardDetailsDialog(
                     ) {
                         AsyncImage(
                             model = card.cardImagePath,
-                            contentDescription = "${card.title} Pokemon Card",
+                            contentDescription = "${card.title} Creature Card",
                             modifier = Modifier
                                 .fillMaxSize()
                                 .padding(8.dp)

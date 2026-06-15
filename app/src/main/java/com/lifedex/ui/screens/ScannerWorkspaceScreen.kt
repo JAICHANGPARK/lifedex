@@ -407,7 +407,7 @@ fun ScannerWorkspaceScreen(
                 contentAlignment = Alignment.Center
             ) {
                 if (showCardTab && cardImageBitmap != null) {
-                    // Show Pokemon Card Image
+                    // Show Creature Card Image
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
@@ -423,7 +423,7 @@ fun ScannerWorkspaceScreen(
                     ) {
                         Image(
                             bitmap = cardImageBitmap.asImageBitmap(),
-                            contentDescription = "Pokemon Card",
+                            contentDescription = "Creature Card",
                             modifier = Modifier
                                 .fillMaxSize()
                                 .padding(8.dp)
@@ -552,7 +552,7 @@ fun ScannerWorkspaceScreen(
                         }
                     ) {
                         Text(
-                            "포켓몬 카드",
+                            "도감 카드",
                             style = MaterialTheme.typography.labelLarge,
                             fontWeight = FontWeight.Bold
                         )
@@ -575,7 +575,7 @@ fun ScannerWorkspaceScreen(
                     )
                     Spacer(Modifier.width(8.dp))
                     Text(
-                        "포켓몬 카드 생성 중...",
+                        "도감 카드 생성 중...",
                         color = MaterialTheme.colorScheme.onTertiaryContainer,
                         style = MaterialTheme.typography.labelMedium,
                         fontWeight = FontWeight.SemiBold

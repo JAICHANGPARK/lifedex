@@ -20,7 +20,7 @@ object CardGenerator {
 
     private const val TAG = "CardGenerator"
 
-    enum class PokemonType(
+    enum class CardElementType(
         val typeName: String,
         val colorHex: String,
         val bgStartHex: String,
@@ -37,55 +37,55 @@ object CardGenerator {
         NORMAL("NORMAL", "#94A3B8", "#E2E8F0", "#334155", "⚪", "🔥", "🔮")
     }
 
-    private fun getAttack1Name(type: PokemonType, seed: Int): String {
+    private fun getAttack1Name(type: CardElementType, seed: Int): String {
         val names = when (type) {
-            PokemonType.FIRE -> listOf("불꽃 펀치", "불씨날리기", "화염 세례")
-            PokemonType.WATER -> listOf("물대포", "거품광선", "아쿠아 링")
-            PokemonType.GRASS -> listOf("잎날 가르기", "덩굴 채찍", "가루뿌리기")
-            PokemonType.LIGHTNING -> listOf("전기 쇼크", "스파크", "전자포")
-            PokemonType.PSYCHIC -> listOf("염동력", "환상빔", "최면술")
-            PokemonType.NORMAL -> listOf("몸통 박치기", "할퀴기", "웅크리기")
+            CardElementType.FIRE -> listOf("불꽃 펀치", "불씨날리기", "화염 세례")
+            CardElementType.WATER -> listOf("물대포", "거품광선", "아쿠아 링")
+            CardElementType.GRASS -> listOf("잎날 가르기", "덩굴 채찍", "가루뿌리기")
+            CardElementType.LIGHTNING -> listOf("전기 쇼크", "스파크", "전자포")
+            CardElementType.PSYCHIC -> listOf("염동력", "환상빔", "최면술")
+            CardElementType.NORMAL -> listOf("몸통 박치기", "할퀴기", "웅크리기")
         }
         return names[Math.abs(seed) % names.size]
     }
 
-    private fun getAttack2Name(type: PokemonType, seed: Int): String {
+    private fun getAttack2Name(type: CardElementType, seed: Int): String {
         val names = when (type) {
-            PokemonType.FIRE -> listOf("홍련의 바람", "플레어 드라이브", "화염 방사")
-            PokemonType.WATER -> listOf("하이드로 펌프", "파도타기", "아쿠아 댐")
-            PokemonType.GRASS -> listOf("솔라 빔", "리프 스톰", "기가 드레인")
-            PokemonType.LIGHTNING -> listOf("번개 치기", "볼트 태클", "백만 볼트")
-            PokemonType.PSYCHIC -> listOf("사이코키네시스", "섀도볼", "미래 예지")
-            PokemonType.NORMAL -> listOf("파괴 광선", "메가톤 펀치", "기가 임팩트")
+            CardElementType.FIRE -> listOf("홍련의 바람", "플레어 드라이브", "화염 방사")
+            CardElementType.WATER -> listOf("하이드로 펌프", "파도타기", "아쿠아 댐")
+            CardElementType.GRASS -> listOf("솔라 빔", "리프 스톰", "기가 드레인")
+            CardElementType.LIGHTNING -> listOf("번개 치기", "볼트 태클", "백만 볼트")
+            CardElementType.PSYCHIC -> listOf("사이코키네시스", "섀도볼", "미래 예지")
+            CardElementType.NORMAL -> listOf("파괴 광선", "메가톤 펀치", "기가 임팩트")
         }
         return names[Math.abs(seed) % names.size]
     }
 
-    private fun getAttack1Desc(type: PokemonType, seed: Int): String {
+    private fun getAttack1Desc(type: CardElementType, seed: Int): String {
         val descs = when (type) {
-            PokemonType.FIRE -> listOf("상대에게 화상을 입힌다.", "동전을 던져 앞면이 나오면 10데미지를 추가한다.")
-            PokemonType.WATER -> listOf("상대의 후퇴 에너지를 1개 늘린다.", "자신의 에너지를 1개 회복한다.")
-            PokemonType.GRASS -> listOf("상대를 독 상태로 만든다.", "상대의 특성을 봉인한다.")
-            PokemonType.LIGHTNING -> listOf("동전을 던져 앞면이 나오면 상대를 마비 상태로 만든다.", "상대 벤치에게도 10데미지를 준다.")
-            PokemonType.PSYCHIC -> listOf("상대를 혼란 상태로 만든다.", "상대의 패를 1장 덱으로 돌린다.")
-            PokemonType.NORMAL -> listOf("자신의 다음 차례에 받는 데미지를 -20한다.", "이 포켓몬에게도 10데미지를 준다.")
+            CardElementType.FIRE -> listOf("상대에게 화상을 입힌다.", "동전을 던져 앞면이 나오면 10데미지를 추가한다.")
+            CardElementType.WATER -> listOf("상대의 후퇴 에너지를 1개 늘린다.", "자신의 에너지를 1개 회복한다.")
+            CardElementType.GRASS -> listOf("상대를 독 상태로 만든다.", "상대의 특성을 봉인한다.")
+            CardElementType.LIGHTNING -> listOf("동전을 던져 앞면이 나오면 상대를 마비 상태로 만든다.", "상대 벤치에게도 10데미지를 준다.")
+            CardElementType.PSYCHIC -> listOf("상대를 혼란 상태로 만든다.", "상대의 패를 1장 덱으로 돌린다.")
+            CardElementType.NORMAL -> listOf("자신의 다음 차례에 받는 데미지를 -20한다.", "이 크리처에게도 10데미지를 준다.")
         }
         return descs[Math.abs(seed) % descs.size]
     }
 
-    private fun getAttack2Desc(type: PokemonType, seed: Int): String {
+    private fun getAttack2Desc(type: CardElementType, seed: Int): String {
         val descs = when (type) {
-            PokemonType.FIRE -> listOf("이 포켓몬에게서 불꽃 에너지를 2개 트래시한다.", "상대 포켓몬을 완전히 태워버린다.")
-            PokemonType.WATER -> listOf("상대의 모든 에너지를 씻어낸다.", "세찬 수압으로 폭발적인 타격을 입힌다.")
-            PokemonType.GRASS -> listOf("이 포켓몬의 HP를 30 회복한다.", "태양 에너지를 충전하여 강력한 빔을 쏜다.")
-            PokemonType.LIGHTNING -> listOf("이 포켓몬도 30데미지를 받는다.", "번개 같은 몸놀림으로 치명타를 가한다.")
-            PokemonType.PSYCHIC -> listOf("상대 배틀 포켓몬의 에너지를 1개 트래시한다.", "기묘한 염력을 발산하여 혼란을 극대화한다.")
-            PokemonType.NORMAL -> listOf("다음 차례에 이 포켓몬은 기술을 사용할 수 없다.", "엄청난 질량으로 상대를 들이받는다.")
+            CardElementType.FIRE -> listOf("이 크리처에게서 불꽃 에너지를 2개 트래시한다.", "상대 크리처를 완전히 태워버린다.")
+            CardElementType.WATER -> listOf("상대의 모든 에너지를 씻어낸다.", "세찬 수압으로 폭발적인 타격을 입힌다.")
+            CardElementType.GRASS -> listOf("이 크리처의 HP를 30 회복한다.", "태양 에너지를 충전하여 강력한 빔을 쏜다.")
+            CardElementType.LIGHTNING -> listOf("이 크리처도 30데미지를 받는다.", "번개 같은 몸놀림으로 치명타를 가한다.")
+            CardElementType.PSYCHIC -> listOf("상대 배틀 크리처의 에너지를 1개 트래시한다.", "기묘한 염력을 발산하여 혼란을 극대화한다.")
+            CardElementType.NORMAL -> listOf("다음 차례에 이 크리처는 기술을 사용할 수 없다.", "엄청난 질량으로 상대를 들이받는다.")
         }
         return descs[Math.abs(seed) % descs.size]
     }
 
-    suspend fun generatePokemonCardImage(
+    suspend fun generateCardImage(
         stickerBitmap: Bitmap,
         objectLabel: String,
         rarity: String,
@@ -103,8 +103,8 @@ object CardGenerator {
             
             // Determine type by hash
             val seed = objectLabel.hashCode()
-            val typeIndex = Math.abs(seed) % PokemonType.values().size
-            val type = PokemonType.values()[typeIndex]
+            val typeIndex = Math.abs(seed) % CardElementType.values().size
+            val type = CardElementType.values()[typeIndex]
             
             // Procedural attacks
             val att1Name = getAttack1Name(type, seed)
@@ -366,7 +366,7 @@ object CardGenerator {
                 paint.textAlign = Paint.Align.CENTER
                 paint.textSize = 18f
                 paint.typeface = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD)
-                canvas.drawText("포켓몬 ex가 기절한 경우 상대는 2포인트 가져간다.", cardWidth / 2f, 1056f, paint)
+                canvas.drawText("크리처 ex가 기절한 경우 상대는 2포인트 가져간다.", cardWidth / 2f, 1056f, paint)
             }
             
             // Copyrights & Illustrators
@@ -390,10 +390,10 @@ object CardGenerator {
             canvas.drawLine(100f, 0f, 900f, 800f, paint)
             canvas.drawLine(350f, -100f, 1150f, 700f, paint)
             
-            Log.d(TAG, "Successfully generated high-fidelity Pokemon card image!")
+            Log.d(TAG, "Successfully generated high-fidelity Creature card image!")
             resultBitmap
         } catch (e: Exception) {
-            Log.e(TAG, "High-fidelity Pokemon card image generation error: ${e.message}")
+            Log.e(TAG, "High-fidelity Creature card image generation error: ${e.message}")
             null
         }
     }

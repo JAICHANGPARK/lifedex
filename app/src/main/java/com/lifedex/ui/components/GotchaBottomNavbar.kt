@@ -7,8 +7,12 @@ import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.Style
+import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.outlined.GridView
 import androidx.compose.material.icons.outlined.QrCodeScanner
+import androidx.compose.material.icons.outlined.Style
+import androidx.compose.material.icons.outlined.Layers
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -51,6 +55,46 @@ fun GotchaBottomNavbar(
                 indicatorColor = MaterialTheme.colorScheme.primaryContainer
             ),
             modifier = Modifier.testTag("nav_dex")
+        )
+
+        NavigationBarItem(
+            selected = activeTab == "CARDS",
+            onClick = { onTabChange("CARDS") },
+            icon = {
+                Icon(
+                    imageVector = if (activeTab == "CARDS") Icons.Filled.Style else Icons.Outlined.Style,
+                    contentDescription = "Cards Gallery"
+                )
+            },
+            label = { Text("My Cards", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold) },
+            colors = NavigationBarItemDefaults.colors(
+                selectedIconColor = MaterialTheme.colorScheme.primary,
+                selectedTextColor = MaterialTheme.colorScheme.primary,
+                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                indicatorColor = MaterialTheme.colorScheme.primaryContainer
+            ),
+            modifier = Modifier.testTag("nav_cards")
+        )
+
+        NavigationBarItem(
+            selected = activeTab == "DECKS",
+            onClick = { onTabChange("DECKS") },
+            icon = {
+                Icon(
+                    imageVector = if (activeTab == "DECKS") Icons.Filled.Layers else Icons.Outlined.Layers,
+                    contentDescription = "Card Decks"
+                )
+            },
+            label = { Text("Card Decks", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold) },
+            colors = NavigationBarItemDefaults.colors(
+                selectedIconColor = MaterialTheme.colorScheme.primary,
+                selectedTextColor = MaterialTheme.colorScheme.primary,
+                unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                indicatorColor = MaterialTheme.colorScheme.primaryContainer
+            ),
+            modifier = Modifier.testTag("nav_decks")
         )
 
         NavigationBarItem(
