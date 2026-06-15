@@ -1,0 +1,1 @@
+{"name":"Gotcha Lite","description":"An offline, on-device subject segmentation card collection dex. Extract foreground objects, gather GPS metadata, and collect digital cards.","requestFramePermissions":[],"majorCapabilities":["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]}
