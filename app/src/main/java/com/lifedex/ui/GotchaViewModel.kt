@@ -516,7 +516,42 @@ class GotchaViewModel(application: Application) : AndroidViewModel(application) 
             } else {
                 // Fallback to Gemini
                 val geminiStickers = detectObjectsWithGemini(uri)
-                if (geminiStickers.isNotEmpty()) geminiStickers else emptyList()
+                if (geminiStickers.isNotEmpty()) {
+                    geminiStickers
+                } else {
+                    // Both ML Kit and Gemini failed! Perform local circular crop fallback.
+                    val original = nukiService.loadBitmapFromUri(uri)
+                    if (original != null) {
+                        val targetSize = 500
+                        val fallbackBitmap = Bitmap.createBitmap(targetSize, targetSize, Bitmap.Config.ARGB_8888)
+                        val fallbackCanvas = android.graphics.Canvas(fallbackBitmap)
+                        val path = android.graphics.Path()
+                        path.addCircle(targetSize / 2f, targetSize / 2f, targetSize / 2f, android.graphics.Path.Direction.CW)
+                        fallbackCanvas.clipPath(path)
+                        
+                        val scale = targetSize.toFloat() / Math.max(original.width, original.height)
+                        val scaledW = (original.width * scale).toInt()
+                        val scaledH = (original.height * scale).toInt()
+                        val resizedBg = Bitmap.createScaledBitmap(original, scaledW, scaledH, true)
+                        val dx = (targetSize - scaledW) / 2f
+                        val dy = (targetSize - scaledH) / 2f
+                        fallbackCanvas.drawBitmap(resizedBg, dx, dy, null)
+                        resizedBg.recycle()
+                        original.recycle()
+                        
+                        listOf(
+                            TempSticker(
+                                bitmap = fallbackBitmap,
+                                title = "스티커 #1",
+                                rarity = determineRandomRarity(),
+                                level = Random.nextInt(10, 100),
+                                suggestions = listOf("스티커 #1", "Specimen", "Gotcha")
+                            )
+                        )
+                    } else {
+                        emptyList()
+                    }
+                }
             }
         }
         

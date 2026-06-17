@@ -35,16 +35,110 @@ class NukiService(private val context: Context) {
 
     private val TAG = "NukiService"
 
-    private val segmenter = SubjectSegmentation.getClient(
-        SubjectSegmenterOptions.Builder()
+    private val isEmulator: Boolean by lazy {
+        val brand = android.os.Build.BRAND
+        val device = android.os.Build.DEVICE
+        val fingerprint = android.os.Build.FINGERPRINT
+        val hardware = android.os.Build.HARDWARE
+        val model = android.os.Build.MODEL
+        val manufacturer = android.os.Build.MANUFACTURER
+        val product = android.os.Build.PRODUCT
+        
+        (brand.startsWith("generic") && device.startsWith("generic"))
+                || fingerprint.startsWith("generic")
+                || fingerprint.startsWith("unknown")
+                || hardware.contains("goldfish")
+                || hardware.contains("ranchu")
+                || model.contains("google_sdk")
+                || model.contains("Emulator")
+                || model.contains("Android SDK built for x86")
+                || manufacturer.contains("Genymotion")
+                || product.contains("sdk_google")
+                || product.contains("google_sdk")
+                || product.contains("sdk")
+                || product.contains("sdk_x86")
+                || product.contains("vbox86p")
+                || product.contains("emulator")
+                || product.contains("simulator")
+    }
+
+    private val segmenter by lazy {
+        val builder = SubjectSegmenterOptions.Builder()
             .enableForegroundConfidenceMask()
             .enableForegroundBitmap()
-            .build()
-    )
+        
+        if (!isEmulator) {
+            builder.enableMultipleSubjects(
+                SubjectSegmenterOptions.SubjectResultOptions.Builder()
+                    .enableConfidenceMask()
+                    .enableSubjectBitmap()
+                    .build()
+            )
+        }
+        SubjectSegmentation.getClient(builder.build())
+    }
 
     private suspend fun <T> awaitTask(task: com.google.android.gms.tasks.Task<T>): T = kotlinx.coroutines.suspendCancellableCoroutine { cont ->
         task.addOnSuccessListener { cont.resume(it) { } }
         task.addOnFailureListener { cont.resumeWithException(it) }
+    }
+
+    private fun isBitmapSegmented(bitmap: Bitmap): Boolean {
+        val w = bitmap.width
+        val h = bitmap.height
+        val samplePoints = listOf(
+            Pair(0, 0),
+            Pair(w - 1, 0),
+            Pair(0, h - 1),
+            Pair(w - 1, h - 1),
+            Pair(w / 10, h / 10),
+            Pair(w * 9 / 10, h / 10),
+            Pair(w / 2, 0),
+            Pair(0, h / 2),
+            Pair(w - 1, h / 2),
+            Pair(w / 2, h - 1)
+        )
+        for (pt in samplePoints) {
+            val x = pt.first.coerceIn(0, w - 1)
+            val y = pt.second.coerceIn(0, h - 1)
+            if (Color.alpha(bitmap.getPixel(x, y)) == 0) {
+                return true
+            }
+        }
+        return false
+    }
+
+    private fun applyStickerBorderAndPadding(source: Bitmap): Bitmap {
+        val targetHeight = 500
+        val targetWidth = (source.width * (targetHeight.toFloat() / source.height)).toInt()
+        val resizedBitmap = Bitmap.createScaledBitmap(source, targetWidth, targetHeight, true)
+
+        val strokeSize = 15f
+        val paddedWidth = resizedBitmap.width + (strokeSize * 2).toInt()
+        val paddedHeight = resizedBitmap.height + (strokeSize * 2).toInt()
+        
+        val finalBitmap = Bitmap.createBitmap(paddedWidth, paddedHeight, Bitmap.Config.ARGB_8888)
+        val finalCanvas = Canvas(finalBitmap)
+        
+        val paint = Paint().apply {
+            color = android.graphics.Color.WHITE
+            style = Paint.Style.STROKE
+            strokeWidth = strokeSize * 2
+            strokeJoin = Paint.Join.ROUND
+            strokeCap = Paint.Cap.ROUND
+        }
+        val alphaBitmap = resizedBitmap.extractAlpha()
+        finalCanvas.drawBitmap(alphaBitmap, strokeSize, strokeSize, paint)
+        alphaBitmap.recycle()
+        
+        val originalPaint = Paint().apply {
+            isAntiAlias = true
+            isFilterBitmap = true
+        }
+        finalCanvas.drawBitmap(resizedBitmap, strokeSize, strokeSize, originalPaint)
+        resizedBitmap.recycle()
+        
+        return finalBitmap
     }
 
     suspend fun processSubjectImages(imageUri: Uri): ProcessedImageResult = withContext(Dispatchers.IO) {
@@ -67,42 +161,49 @@ class NukiService(private val context: Context) {
             val inputImage = InputImage.fromBitmap(safeBitmap, 0)
             val taskResult = awaitTask(segmenter.process(inputImage))
             
+            Log.d(TAG, "processSubjectImages: taskResult success. subjects size: ${taskResult.subjects.size}")
+            val fgBitmap = taskResult.foregroundBitmap
+            Log.d(TAG, "processSubjectImages: foregroundBitmap is null? ${fgBitmap == null}")
+            if (fgBitmap != null) {
+                Log.d(TAG, "processSubjectImages: foregroundBitmap size: ${fgBitmap.width}x${fgBitmap.height}, hasAlpha: ${fgBitmap.hasAlpha()}")
+                val cornerAlpha = Color.alpha(fgBitmap.getPixel(0, 0))
+                val centerAlpha = Color.alpha(fgBitmap.getPixel(fgBitmap.width / 2, fgBitmap.height / 2))
+                Log.d(TAG, "processSubjectImages: cornerAlpha=$cornerAlpha, centerAlpha=$centerAlpha")
+            }
+            
             val processedSubjects = mutableListOf<ProcessedSubject>()
             
-            val fgBitmap = taskResult.foregroundBitmap
-            if (fgBitmap != null) {
-                val targetHeight = 500
-                val targetWidth = (fgBitmap.width * (targetHeight.toFloat() / fgBitmap.height)).toInt()
-                val resizedBitmap = Bitmap.createScaledBitmap(fgBitmap, targetWidth, targetHeight, true)
-
-                val strokeSize = 15f
-                val paddedWidth = resizedBitmap.width + (strokeSize * 2).toInt()
-                val paddedHeight = resizedBitmap.height + (strokeSize * 2).toInt()
-                
-                val finalBitmap = Bitmap.createBitmap(paddedWidth, paddedHeight, Bitmap.Config.ARGB_8888)
-                val finalCanvas = Canvas(finalBitmap)
-                
-                val paint = Paint().apply {
-                    color = android.graphics.Color.WHITE
-                    style = Paint.Style.STROKE
-                    strokeWidth = strokeSize * 2
-                    strokeJoin = Paint.Join.ROUND
-                    strokeCap = Paint.Cap.ROUND
+            // Check for individual subjects if running on a physical device
+            if (!isEmulator && taskResult.subjects.isNotEmpty()) {
+                for (subject in taskResult.subjects) {
+                    val sBitmap = subject.bitmap ?: continue
+                    val finalBitmap = applyStickerBorderAndPadding(sBitmap)
+                    
+                    val croppedContext = try {
+                        Bitmap.createBitmap(
+                            originalBitmap,
+                            subject.startX,
+                            subject.startY,
+                            subject.width,
+                            subject.height
+                        )
+                    } catch (e: Exception) {
+                        originalBitmap
+                    }
+                    
+                    val fallbackColors = listOf("#FFD54F", "#4FC3F7", "#81C784", "#E57373", "#BA68C8", "#FFB74D", "#4DB6AC")
+                    val subjectColor = Color.parseColor(fallbackColors.random())
+                    processedSubjects.add(ProcessedSubject(finalBitmap, croppedContext, subjectColor))
                 }
-                val alphaBitmap = resizedBitmap.extractAlpha()
-                finalCanvas.drawBitmap(alphaBitmap, strokeSize, strokeSize, paint)
-                alphaBitmap.recycle()
-                
-                val originalPaint = Paint().apply {
-                    isAntiAlias = true
-                    isFilterBitmap = true
-                }
-                finalCanvas.drawBitmap(resizedBitmap, strokeSize, strokeSize, originalPaint)
-                resizedBitmap.recycle()
-                
+            } else if (fgBitmap != null && isBitmapSegmented(fgBitmap)) {
+                // Single-foreground mode fallback (e.g. for emulator, or if no individual subjects detected)
+                val finalBitmap = applyStickerBorderAndPadding(fgBitmap)
                 val fallbackColors = listOf("#FFD54F", "#4FC3F7", "#81C784", "#E57373", "#BA68C8", "#FFB74D", "#4DB6AC")
                 val subjectColor = Color.parseColor(fallbackColors.random())
                 processedSubjects.add(ProcessedSubject(finalBitmap, originalBitmap, subjectColor))
+            } else {
+                Log.w(TAG, "processSubjectImages: ML Kit did not segment the image (opaque foreground). Throwing exception to fall back.")
+                throw RuntimeException("ML Kit segmentation failed to isolate subject")
             }
             
             val combinedOverlay = Bitmap.createBitmap(safeBitmap.width, safeBitmap.height, Bitmap.Config.ARGB_8888)
@@ -124,25 +225,7 @@ class NukiService(private val context: Context) {
             return@withContext ProcessedImageResult(processedSubjects, combinedOverlay, safeBitmap)
         } catch (e: Exception) {
             Log.e(TAG, "processSubjectImages failed: ${e.message}", e)
-            
-            val targetSize = 500
-            val fallbackBitmap = Bitmap.createBitmap(targetSize, targetSize, Bitmap.Config.ARGB_8888)
-            val fallbackCanvas = Canvas(fallbackBitmap)
-            val path = android.graphics.Path()
-            path.addCircle(targetSize / 2f, targetSize / 2f, targetSize / 2f, android.graphics.Path.Direction.CW)
-            fallbackCanvas.clipPath(path)
-            
-            val scale = targetSize.toFloat() / Math.max(originalBitmap.width, originalBitmap.height)
-            val scaledW = (originalBitmap.width * scale).toInt()
-            val scaledH = (originalBitmap.height * scale).toInt()
-            val resizedBg = Bitmap.createScaledBitmap(originalBitmap, scaledW, scaledH, true)
-            val dx = (targetSize - scaledW) / 2f
-            val dy = (targetSize - scaledH) / 2f
-            fallbackCanvas.drawBitmap(resizedBg, dx, dy, null)
-            resizedBg.recycle()
-            
-            val fallbackSubject = ProcessedSubject(fallbackBitmap, originalBitmap, fallbackColor)
-            return@withContext ProcessedImageResult(listOf(fallbackSubject), originalBitmap, originalBitmap)
+            throw e
         }
     }
 

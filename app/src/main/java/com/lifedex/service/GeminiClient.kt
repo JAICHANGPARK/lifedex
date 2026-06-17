@@ -28,7 +28,7 @@ class GeminiClient(
             "properties": {
               "label": {
                 "type": "STRING",
-                "description": "Label of the object in Korean (e.g. 게코도마뱀)"
+                "description": "Specific name of the object in Korean. Identify the exact species, breed, product name, brand, model, or character (e.g., '러시안 블루' instead of '고양이', '로보혼' instead of '로봇', '아이폰 15' instead of '핸드폰')"
               },
               "box_2d": {
                 "type": "ARRAY",
@@ -227,7 +227,13 @@ class GeminiClient(
     suspend fun analyzeImageWithGemini(bitmap: Bitmap): List<String>? {
         return try {
             Log.d(TAG, "Requesting Gemini analysis for bitmap...")
-            val prompt = "Identify the main object in this image in detail. Since this is an encyclopedia app, identify the specific species, breed, model, or type of the object (e.g. instead of just '고양이', specify '러시안 블루'; instead of '나무', specify '소나무'; instead of '꽃', specify '장미'). Answer with exactly 3 clear related nouns in Korean, separated only by a comma (e.g., '러시안 블루, 고양이, 반려동물'). Do not write a sentence, just the 3 nouns."
+            val prompt = "Identify the main object in this image with extreme specificity. " +
+                    "Since this is an encyclopedia app, you MUST identify the exact specific species, breed, model name, brand name, character name, or detailed type of the object. " +
+                    "For manufactured products, electronics, robots, toys, or merchandise, identify the specific brand, model, product name, or character if visible (e.g., instead of '로봇', write '로보혼'; instead of '피규어' or '인형', write '루피 피규어' or '건담 프라모델'; instead of '핸드폰', write '아이폰 15'). " +
+                    "For living things, identify the exact species, breed, or variety (e.g., instead of '고양이', write '러시안 블루'; instead of '꽃', write '장미'). " +
+                    "For foods, identify the specific dish name (e.g., '김치찌개'). " +
+                    "Answer with exactly 3 related nouns or noun phrases in Korean, ordered from most specific to most general, separated only by a comma (e.g., '러시안 블루, 고양이, 반려동물' or '로보혼, 반려로봇, 스마트기기'). " +
+                    "DO NOT write a sentence, and do not use generic category names like '로봇', '피규어', '인형', '기기', '물건' as the FIRST noun unless it is absolutely impossible to identify a more specific name. Just return the 3 comma-separated nouns/phrases."
             val detected = generateWithFallback(prompt, bitmap, isJson = false, enableGrounding = true).trim()
             Log.d(TAG, "Gemini response: $detected")
             if (detected.isNotEmpty()) {
@@ -250,7 +256,7 @@ class GeminiClient(
     suspend fun detectObjectsWithGemini(bitmap: Bitmap): List<GeminiDetectedObject> {
         try {
             Log.d(TAG, "Requesting Gemini object detection with contour polygons...")
-            val prompt = "Detect all prominent objects in the image. For each object, locate it using a 2D bounding box (box_2d) and trace its precise contour outline using a polygon of 20 to 35 points [y, x] in order. Provide the label in Korean."
+            val prompt = "Detect all prominent objects in the image. For each object, locate it using a 2D bounding box (box_2d) and trace its precise contour outline using a polygon of 20 to 35 points [y, x] in order. Provide a highly specific label in Korean, identifying the exact model, product name, brand, species, breed, or character (e.g., '로보혼' instead of '로봇', '아이폰 15' instead of '핸드폰', '러시안 블루' instead of '고양이')."
             val jsonText = generateWithFallback(prompt, bitmap, isJson = true, jsonSchemaStr = POLYGON_SCHEMA_JSON).trim()
             Log.d(TAG, "Gemini Object Detection response: $jsonText")
             

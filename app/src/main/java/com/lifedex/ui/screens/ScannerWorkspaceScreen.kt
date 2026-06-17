@@ -36,6 +36,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.TextStyle
@@ -341,6 +344,9 @@ fun ScannerWorkspaceScreen(
                         modifier = Modifier.padding(bottom = 12.dp)
                     )
 
+                    var imageWidth by remember { mutableStateOf(1) }
+                    var imageHeight by remember { mutableStateOf(1) }
+
                     // Display combined mask image
                     Image(
                         bitmap = combinedMaskImage.asImageBitmap(),
@@ -349,7 +355,18 @@ fun ScannerWorkspaceScreen(
                             .fillMaxWidth()
                             .height(260.dp)
                             .clip(RoundedCornerShape(16.dp))
-                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp)),
+                            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
+                            .onGloballyPositioned { coordinates ->
+                                imageWidth = coordinates.size.width
+                                imageHeight = coordinates.size.height
+                            }
+                            .pointerInput(detectedSubjects) {
+                                detectTapGestures { offset ->
+                                    if (detectedSubjects.isNotEmpty()) {
+                                        onSubjectSelect(0)
+                                    }
+                                }
+                            },
                         contentScale = ContentScale.Fit
                     )
 
